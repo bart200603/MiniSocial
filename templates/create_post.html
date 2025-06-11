@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发布新帖子 - MiniSocial</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .custom-file-upload {
+            display: inline-block;
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: var(--clay-light);
+            color: var(--clay-dark);
+            border-radius: 8px;
+            border: 1px dashed var(--clay-primary);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .custom-file-upload:hover {
+            background-color: var(--clay-primary);
+            color: white;
+        }
+        
+        .custom-file-upload i {
+            margin-right: 8px;
+        }
+        
+        #file-upload {
+            display: none;
+        }
+        
+        .image-preview {
+            margin-top: 15px;
+            max-width: 100%;
+            display: none;
+        }
+        
+        .image-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+        }
+        
+        .preview-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .remove-image {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            text-align: center;
+            line-height: 24px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">MiniSocial</a>
+            <div class="nav-links">
+                <a href="/feed" class="nav-link">关注动态</a>
+                <a href="/create_post" class="nav-link active">发布</a>
+                <a href="/profile/{{ user.id }}" class="nav-link">个人主页</a>
+                <a href="/" class="nav-link">首页</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>发布新帖子</h1>
+        
+        <!-- 消息提示 -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <!-- 发布表单 -->
+        <div class="form-container clay-element">
+            <form action="/create_post" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="content">内容</label>
+                    <textarea id="content" name="content" class="form-input" placeholder="分享你的想法..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="file-upload" class="custom-file-upload">
+                        <i class="fas fa-image"></i> 添加图片
+                    </label>
+                    <input type="file" id="file-upload" name="image" accept="image/*">
+                    
+                    <div class="image-preview" id="image-preview">
+                        <div class="preview-container">
+                            <img id="preview-img" src="#" alt="预览图片">
+                            <div class="remove-image" onclick="removeImage()">
+                                <i class="fas fa-times"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">发布</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 图片预览功能
+        document.getElementById('file-upload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    document.getElementById('preview-img').src = e.target.result;
+                    document.getElementById('image-preview').style.display = 'block';
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // 移除图片
+        function removeImage() {
+            document.getElementById('file-upload').value = '';
+            document.getElementById('image-preview').style.display = 'none';
+        }
+    </script>
+</body>
+</html> 

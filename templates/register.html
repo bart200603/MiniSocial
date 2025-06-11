@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - MiniSocial</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .captcha-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .captcha-box {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 20px;
+            letter-spacing: 3px;
+            color: var(--clay-darker);
+            text-align: center;
+            width: 100px;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .captcha-box::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(0, 0, 0, 0.05),
+                rgba(0, 0, 0, 0.05) 10px,
+                rgba(0, 0, 0, 0) 10px,
+                rgba(0, 0, 0, 0) 20px
+            );
+        }
+        
+        .captcha-input {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">MiniSocial</a>
+            <div class="nav-links">
+                <a href="/login" class="nav-link">登录</a>
+                <a href="/register" class="nav-link active">注册</a>
+                <a href="/" class="nav-link">首页</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="auth-container">
+            <div class="form-container clay-element">
+                <h1>注册</h1>
+                
+                <!-- 消息提示 -->
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="flash-messages">
+                            {% for message in messages %}
+                                <div class="flash-message">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                
+                <form action="/register" method="POST">
+                    <div class="form-group">
+                        <label for="username">用户名</label>
+                        <input type="text" id="username" name="username" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">邮箱</label>
+                        <input type="email" id="email" name="email" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <input type="password" id="password" name="password" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="captcha">验证码</label>
+                        <div class="captcha-container">
+                            <div class="captcha-box">{{ captcha }}</div>
+                            <input type="text" id="captcha" name="captcha" class="form-input captcha-input" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">注册</button>
+                </form>
+                
+                <div class="auth-links">
+                    <p>已有账号？<a href="/login">立即登录</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniSocial - 首页</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">MiniSocial</a>
+            <div class="nav-links">
+                {% if user %}
+                    <a href="/feed" class="nav-link">关注动态</a>
+                    <a href="/create_post" class="nav-link">发布</a>
+                    <a href="/profile/{{ user.id }}" class="nav-link">个人主页</a>
+                    <a href="/logout" class="nav-link">退出</a>
+                {% else %}
+                    <a href="/login" class="nav-link">登录</a>
+                    <a href="/register" class="nav-link">注册</a>
+                    <a href="/message_wall" class="nav-link">消息墙</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>MiniSocial</h1>
+        
+        <!-- 显示消息提示 -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- 搜索框 -->
+        <div class="search-container clay-element">
+            <form action="/search" method="GET" class="search-form">
+                <input type="text" name="q" placeholder="搜索用户或帖子..." class="search-input" required>
+                <button type="submit" class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- 发布帖子快捷入口 -->
+        {% if user %}
+            <div class="form-container">
+                <form action="/create_post" method="get">
+                    <div class="form-group">
+                        <textarea class="form-input" placeholder="有什么新鲜事？" disabled></textarea>
+                    </div>
+                    <button type="submit" class="form-button">发布新帖子</button>
+                </form>
+            </div>
+        {% endif %}
+
+        <!-- 帖子列表 -->
+        <div class="posts-container">
+            {% for post in posts %}
+                <div class="post clay-element">
+                    <div class="post-header">
+                        <img src="{{ post.avatar }}" alt="头像" class="post-avatar" onerror="this.onerror=null; this.src='/static/images/default_avatar.txt';">
+                        <a href="/profile/{{ post.user_id }}" class="post-author">{{ post.author }}</a>
+                        <span class="post-time">{{ post.timestamp }}</span>
+                    </div>
+                    <div class="post-content">
+                        {{ post.content }}
+                        {% if post.image_url %}
+                            <div class="post-image">
+                                <img src="{{ post.image_url }}" alt="帖子图片" onerror="this.onerror=null; this.src='/static/images/default_avatar.txt';">
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="post-actions">
+                        <button onclick="window.location.href='/like_post/{{ post.id }}'" class="post-action">
+                            {% set liked = false %}
+                            {% for like in data.likes %}
+                                {% if like.user_id == user.id and like.post_id == post.id %}
+                                    {% set liked = true %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if liked %}
+                                <i class="fas fa-heart"></i>
+                            {% else %}
+                                <i class="far fa-heart"></i>
+                            {% endif %}
+                            <span>{{ post.likes_count }}</span>
+                        </button>
+                        <button onclick="toggleComments('{{ post.id }}')" class="post-action">
+                            <i class="far fa-comment"></i>
+                            <span>{{ post.comments|length }}</span>
+                        </button>
+                    </div>
+                    
+                    <!-- 评论区 -->
+                    <div id="comments-{{ post.id }}" class="comments-section" style="display: none;">
+                        <div class="comments-list">
+                            {% for comment in post.comments %}
+                                <div class="comment">
+                                    {% for u in data.users.values() %}
+                                        {% if u.id == comment.user_id %}
+                                            <img src="{{ u.avatar }}" alt="头像" class="comment-avatar" onerror="this.onerror=null; this.src='/static/images/default_avatar.txt';">
+                                            <a href="/profile/{{ u.id }}" class="comment-author">{{ u.username }}</a>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <div class="comment-content">{{ comment.content }}</div>
+                                    <div class="comment-time">{{ comment.timestamp }}</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if user %}
+                            <form action="/comment/{{ post.id }}" method="POST" class="comment-form">
+                                <textarea name="content" placeholder="发表评论..." class="comment-input" required></textarea>
+                                <button type="submit" class="comment-submit">发送</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="message-item">暂无帖子，快来发布第一条吧！</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        function toggleComments(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+            if (commentsSection.style.display === 'none') {
+                commentsSection.style.display = 'block';
+            } else {
+                commentsSection.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html> 

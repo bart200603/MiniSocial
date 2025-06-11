@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.username }} 的个人主页 - MiniSocial</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .logout-button {
+            background-color: var(--clay-secondary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            display: block;
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .logout-button:hover {
+            background-color: #c45c5c;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal-content {
+            background-color: var(--clay-light);
+            margin: 15% auto;
+            padding: 20px;
+            width: 300px;
+            border-radius: 12px;
+            box-shadow: 6px 6px 12px var(--clay-shadow),
+                        -6px -6px 12px rgba(255, 255, 255, 0.8);
+            text-align: center;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .modal-button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .confirm-button {
+            background-color: #c45c5c;
+            color: white;
+        }
+        
+        .cancel-button {
+            background-color: var(--clay-secondary);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">MiniSocial</a>
+            <div class="nav-links">
+                {% if current_user %}
+                    <a href="/feed" class="nav-link">关注动态</a>
+                    <a href="/create_post" class="nav-link">发布</a>
+                    {% if current_user.id == user.id %}
+                        <a href="/edit_profile" class="nav-link">编辑资料</a>
+                        <a href="javascript:void(0)" onclick="confirmLogout()" class="nav-link">退出</a>
+                    {% endif %}
+                {% else %}
+                    <a href="/login" class="nav-link">登录</a>
+                    <a href="/register" class="nav-link">注册</a>
+                {% endif %}
+                <a href="/" class="nav-link">首页</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 显示消息提示 -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <!-- 个人资料卡片 -->
+        <div class="profile-card clay-element">
+            <div class="profile-header">
+                <img src="{{ user.avatar }}" alt="{{ user.username }} 的头像" class="profile-avatar" onerror="this.onerror=null; this.src='/static/images/default_avatar.txt';">
+                <div class="profile-info">
+                    <h1 class="profile-username">{{ user.username }}</h1>
+                    <p class="profile-bio">{{ user.bio }}</p>
+                    <div class="profile-stats">
+                        <div class="stat">
+                            <span class="stat-count">{{ posts|length }}</span>
+                            <span class="stat-label">帖子</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-count">{{ followers_count }}</span>
+                            <span class="stat-label">粉丝</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-count">{{ following_count }}</span>
+                            <span class="stat-label">关注</span>
+                        </div>
+                    </div>
+                    
+                    {% if current_user and current_user.id != user.id %}
+                        {% if is_following %}
+                            <a href="/unfollow/{{ user.id }}" class="btn btn-secondary">取消关注</a>
+                        {% else %}
+                            <a href="/follow/{{ user.id }}" class="btn btn-primary">关注</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 帖子列表 -->
+        <h2 class="section-title">帖子</h2>
+        <div class="posts-container">
+            {% if posts %}
+                {% for post in posts %}
+                    <div class="post clay-element">
+                        <div class="post-header">
+                            <img src="{{ user.avatar }}" alt="{{ user.username }} 的头像" class="post-avatar" onerror="this.onerror=null; this.src='/static/images/default_avatar.txt';">
+                            <span class="post-author">{{ user.username }}</span>
+                            <span class="post-time">{{ post.timestamp }}</span>
+                        </div>
+                        <div class="post-content">
+                            {{ post.content }}
+                            {% if post.image_url %}
+                                <div class="post-image">
+                                    <img src="{{ post.image_url }}" alt="帖子图片" onerror="this.onerror=null; this.src='/static/images/default_avatar.txt';">
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="post-actions">
+                            <button onclick="window.location.href='/like_post/{{ post.id }}'" class="post-action">
+                                {% set liked = false %}
+                                {% for like in likes %}
+                                    {% if current_user and like.user_id == current_user.id and like.post_id == post.id %}
+                                        {% set liked = true %}
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if liked %}
+                                    <i class="fas fa-heart"></i>
+                                {% else %}
+                                    <i class="far fa-heart"></i>
+                                {% endif %}
+                                <span>{{ likes|selectattr('post_id', 'equalto', post.id)|list|length }}</span>
+                            </button>
+                            <button onclick="toggleComments('{{ post.id }}')" class="post-action">
+                                <i class="far fa-comment"></i>
+                                <span>{{ comments|selectattr('post_id', 'equalto', post.id)|list|length }}</span>
+                            </button>
+                        </div>
+                        
+                        <!-- 评论区 -->
+                        <div id="comments-{{ post.id }}" class="comments-section" style="display: none;">
+                            <div class="comments-list">
+                                {% for comment in comments %}
+                                    {% if comment.post_id == post.id %}
+                                        <div class="comment">
+                                            {% for u in users.values() %}
+                                                {% if u.id == comment.user_id %}
+                                                    <img src="{{ u.avatar }}" alt="{{ u.username }} 的头像" class="comment-avatar" onerror="this.onerror=null; this.src='/static/images/default_avatar.txt';">
+                                                    <a href="/profile/{{ u.id }}" class="comment-author">{{ u.username }}</a>
+                                                {% endif %}
+                                            {% endfor %}
+                                            <div class="comment-content">{{ comment.content }}</div>
+                                            <div class="comment-time">{{ comment.timestamp }}</div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            
+                            {% if current_user %}
+                                <form action="/comment/{{ post.id }}" method="POST" class="comment-form">
+                                    <textarea name="content" placeholder="发表评论..." class="comment-input" required></textarea>
+                                    <button type="submit" class="comment-submit">发送</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="message-container clay-element">
+                    <p>还没有发布任何帖子</p>
+                    {% if current_user and current_user.id == user.id %}
+                        <a href="/create_post" class="btn btn-primary">发布第一条帖子</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 退出确认对话框 -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content clay-element">
+            <h2>确认退出</h2>
+            <p>您确定要退出登录吗？</p>
+            <div class="modal-actions">
+                <button onclick="hideLogoutModal()" class="btn btn-secondary">取消</button>
+                <button onclick="logout()" class="btn btn-primary">确认退出</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleComments(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+            if (commentsSection.style.display === 'none') {
+                commentsSection.style.display = 'block';
+            } else {
+                commentsSection.style.display = 'none';
+            }
+        }
+        
+        function confirmLogout() {
+            document.getElementById('logout-modal').style.display = 'flex';
+        }
+        
+        function hideLogoutModal() {
+            document.getElementById('logout-modal').style.display = 'none';
+        }
+        
+        function logout() {
+            window.location.href = '/logout';
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('logout-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html> 

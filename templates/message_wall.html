@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消息墙 - MiniSocial</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">MiniSocial</a>
+            <div class="nav-links">
+                {% if user %}
+                <a href="/feed" class="nav-link">关注动态</a>
+                <a href="/create_post" class="nav-link">发布</a>
+                <a href="/profile/{{ user.id }}" class="nav-link">个人主页</a>
+                {% else %}
+                <a href="/login" class="nav-link">登录</a>
+                <a href="/register" class="nav-link">注册</a>
+                {% endif %}
+                <a href="/" class="nav-link">首页</a>
+                <a href="/message_wall" class="nav-link active">消息墙</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>实时消息墙</h1>
+        <div class="form-container clay-element">
+            <form id="message-form">
+                <div class="form-group">
+                    <label for="message">发送消息</label>
+                    <textarea id="message" class="form-input" placeholder="输入你想说的话..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">发送</button>
+            </form>
+        </div>
+
+        <div class="message-wall clay-element">
+            <h2>消息列表</h2>
+            <div id="messages" class="messages-container">
+                <div class="loading-message">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message');
+        const messagesContainer = document.getElementById('messages');
+
+        // 发送消息
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (message) {
+                // 发送到服务器
+                fetch('/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `msg=${encodeURIComponent(message)}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // 清空输入框
+                        messageInput.value = '';
+                        // 重新加载消息
+                        loadMessages();
+                    } else {
+                        alert('发送失败，请重试');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('发送失败，请重试');
+                });
+            }
+        });
+
+        // 加载消息
+        function loadMessages() {
+            fetch('/messages')
+                .then(response => response.json())
+                .then(messages => {
+                    messagesContainer.innerHTML = '';
+                    if (messages.length === 0) {
+                        messagesContainer.innerHTML = '<div class="empty-message">暂无消息，快来发送第一条吧！</div>';
+                        return;
+                    }
+                    
+                    // 显示消息
+                    messages.forEach(message => {
+                        const messageElement = document.createElement('div');
+                        messageElement.className = 'message-item';
+                        messageElement.textContent = message;
+                        messagesContainer.appendChild(messageElement);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    messagesContainer.innerHTML = '<div class="error-message">加载失败，请刷新页面重试</div>';
+                });
+        }
+
+        // 页面加载时获取消息
+        document.addEventListener('DOMContentLoaded', loadMessages);
+
+        // 每5秒自动刷新消息
+        setInterval(loadMessages, 5000);
+    </script>
+</body>
+</html> 
